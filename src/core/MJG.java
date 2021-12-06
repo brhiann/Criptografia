@@ -4,13 +4,19 @@ import jdk.jfr.Description;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class MJG {
 
 
     public MJG() {
 
+    }
+
+    public static String encrypt(String plainText, String key) {
+        return Hooks.encode(plainText, key);
     }
 
     sealed public static abstract class Function {
@@ -167,10 +173,6 @@ public class MJG {
             return factor;
         }
 
-//    public static String reverse(String target, String key) {
-//
-//    }
-
         public static Integer[] abstractToken(String target, String key) {
 
             var letters = target.toCharArray();
@@ -187,11 +189,7 @@ public class MJG {
             return Arrays.stream((preCalc.stream().map(String::valueOf).reduce("", (a, b) -> a + b).split(""))).mapToInt(Integer::parseInt).boxed().toArray(Integer[]::new);
         }
 
-        public static String[] combination(
-                char target,
-                String key,
-                String[][][] box,
-                int[] rotationFactor) {
+        public static String[] combination(int[] rotationFactor) {
             var coordinates = new String[4];
             var axisDynamic = new AxisDynamic();
             final var top = rotationFactor[0];
@@ -208,7 +206,7 @@ public class MJG {
         }
 
 
-        public static String[][][] finalArea(String[] combination) {
+        public static String[][][] area(String[] combination) {
             var preArea = new ArrayList<String[][]>();
 
             for (int i = 0; i < combination.length; i++) {
@@ -239,74 +237,84 @@ public class MJG {
             return binary.toString();
         }
 
-        public static final String encode(String target, String key) {
+        public static String encode(String target, String key) {
+            var preResult = new int[4];
+            var finalResult = new HashSet<String>();
             var reverseKey = new StringBuilder(key).reverse().toString().toCharArray();
             var reverseTarget = new StringBuilder(target).reverse().toString().toCharArray();
-            var result = new ArrayList<String>();
+            var handleRotation = new ArrayList<Double>();
+            var rotation = rotationFactor(target, key);
+            var combination = combination(rotation);
+            var finalArea = area(combination);
             for(int i = 0; i < reverseTarget.length; i++) {
 
                 var p1 = new double[]{0.0, 0.0};
                 var p2 = new double[]{0.0, 0.0};
 
-                int displacement = reverseTarget.length > reverseKey.length ? reverseKey.length * i: reverseTarget.length * i  % reverseKey.length;
 
-                var fqp1 = new Function.QuadraticFunction(
-                        reverseTarget.length,
-                        reverseKey.length,
-                        reverseTarget.length >> displacement).eval(i);
-                var fqp2 = new Function.QuadraticFunction(
-                        reverseTarget.length,
-                        reverseKey.length,
-                        reverseTarget.length >> displacement).eval(i + 1);
+                int hashP0 = String.valueOf(reverseKey[i]).hashCode();
+                int hashP1 = String.valueOf(reverseTarget[i]).hashCode();
+                int hashP2 = hashP0 << 1;
+                int hashP3 = hashP1 >> 1;
 
-                var fqp3 = new Function.QuadraticFunction(
-                        reverseTarget.length,
-                        reverseKey.length,
-                        reverseTarget.length >> displacement).eval(i + 2);
+                var fx = Math.floor(new Function.LinearFunction(new double[]{hashP0, hashP1}, new double[]{hashP2, hashP3}).getGradient()*20);
 
-                var fqp4 = new Function.QuadraticFunction(
-                        reverseTarget.length,
-                        reverseKey.length,
-                        reverseTarget.length >> displacement).eval(i + 3);
+                handleRotation.add((fx));
 
-                System.out.println(fqp1);
-                System.out.println(fqp2);
-                System.out.println(fqp3);
-                System.out.println(fqp4);
+                for (int j = 0; j < finalArea.length; j++) {
+                    for (int k = 0; k < finalArea[j].length; k++) {
+                        for (int l = 0; l < finalArea[j][k].length; l++) {
+                            if (finalArea[j][k][l].equals(String.valueOf(reverseTarget[i]))) {
 
-                var fx = Math.round(new Function.LinearFunction(new double[]{fqp1, fqp2}, new double[]{fqp3, fqp4}).getGradient() *2);
+                                preResult[0] = j +  Math.toIntExact((long) Math.abs(fx)) % (int)reverseTarget[i];
+                                preResult[1] = k +  Math.toIntExact((long) Math.abs(fx)) % (int)reverseKey[i];
+                                preResult[2] = l +  Math.toIntExact((long) Math.abs(fx)) % (int)reverseTarget[i];
+                                preResult[3] = j+k+l + Math.toIntExact((long) Math.abs(fx)) % (int)reverseKey[i];
 
-                result.add(String.valueOf(fx));
+                                var relativeCombination = combination(preResult);
+                                var relativeArea = area(relativeCombination);
 
+                                var pre = (Integer.parseInt(finalEncrypt(relativeArea[0][0][0], String.valueOf(reverseKey[i]))));
+
+                                var f0 = Stream.of((String.valueOf(preResult[0]).split(""))).mapToInt(Integer::parseInt).toArray();
+                                var f1 = Stream.of((String.valueOf(preResult[1]).split(""))).mapToInt(Integer::parseInt).toArray();
+                                var f2 = Stream.of((String.valueOf(preResult[2]).split(""))).mapToInt(Integer::parseInt).toArray();
+                                var f3 = Stream.of((String.valueOf(preResult[3]).split(""))).mapToInt(Integer::parseInt).toArray();
+
+                                if(f0.length == 1) {
+                                    f0 = new int[]{f0[0], f0[0]};
+                                }
+                                if(f1.length == 1) {
+                                    f1 = new int[]{f1[0], f1[0]};
+                                }
+                                if(f2.length == 1) {
+                                    f2 = new int[]{f2[0], f2[0]};
+                                }
+                                if(f3.length == 1) {
+                                    f3 = new int[]{f3[0], f3[0]};
+                                }
+
+                                String charSuccess = Axis.getDuck()[f0[0]][f0[1]] +Axis.getDuck()[f1[0]][f1[1]] + Axis.getDuck()[f2[0]][f2[1]] + Axis.getDuck()[f3[0]][f3[1]];
+
+                                finalResult.add(charSuccess);
+                            }
+                        }
+                    }
+                }
             }
-            return result.toString();
-
+            return finalResult.toString();
         }
 
 
 
-//    public static String decryptToken(String target, String key) {
-//        StringBuilder sb = new StringBuilder();
-//        for (int i = 0; i < target.length(); i++) {
-//            sb.append((char)(target.charAt(i) ^ key.charAt(i % key.length())));
-//        }
-//        return sb.toString();
-//    }
-//
-//    public static String decryptToken(String target, String key, String[] combinationToken) {
-//        StringBuilder sb = new StringBuilder();
-//        for (int i = 0; i < target.length(); i++) {
-//            for (int j = 0; j < combinationToken.length; j++) {
-//                sb.append((char)(target.charAt(i) ^ combinationToken[j].charAt(i % combinationToken[j].length())));
-//            }
-//        }
-//        return sb.toString();
-//    }
+    public static String finalEncrypt(String target, String key) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < target.length(); i++) {
+            sb.append((target.charAt(i) ^ key.charAt(i % key.length())));
+        }
+        return sb.toString();
+    }
 
-//    public static int[] transposeColum(String[][][] box) {
-//
-//
-//    }
     }
 
     public static class AxisDynamic {
@@ -440,31 +448,23 @@ public class MJG {
         }
     }
 
-    public class Integrate {
-
-        Function function;
-        double x;
-
-        public Integrate(Derivable dx) {
-            this.function = dx.getFunction();
-            this.x = dx.getX();
-        }
-
-//    public double[] eval() {
-//        return switch (function.getClass().getSimpleName()) {
-//            case "LinearFunction" -> {
-//
-//            };
-//            case "QuadraticFunction" -> dx.getX()[0]*2*x + dx.getX()[1];
-//            case "ExponentialFunction" -> (dx.getX()[0])*(dx.getX()[1])*dx.eval(x);
-//            case "LogarithmicFunction" -> (dx.getX()[0])/x;
-//            default -> throw new IllegalStateException("Error");
-//        };
-//    }
-
-    }
-
     public class Axis {
+
+        /**
+         *                                          z
+         *     /--------------/|                    |    / y
+         *    /|             / |                    |   /
+         *   / |            /  |                    |  /
+         *  /  |           /   |                    | /
+         * +--------------+ -- /    -x -------------|------------- x
+         * |   /          |   /                    /|
+         * |  /           |  /                    / |
+         * | /            | /                    /  |
+         * |______________|/                 -y /   |
+         *                                         -z
+         *
+         *
+         */
 
         @Description("static X-axis; Where {x>0}")
         public static String[][] getABC_UP() {
@@ -505,7 +505,10 @@ public class MJG {
             return new String[][]{
                     {"@", "#", "$", "%", "&"},
                     {"*", "(", ")", "-", "_"},
-                    {"+", "=", "|", "\\", "/"}
+                    {"+", "=", "|", "\\", "/"},
+                    {"+0", "=0", "|0", "\\0", "/0"},
+                    {"+1", "=1", "|1", "\\1", "/1"},
+                    {"+2", "=2", "|2", "\\2", "/2"},
             };
         }
 
@@ -513,6 +516,11 @@ public class MJG {
         public static String[][] getABC_UP_NUM() {
             return new String[][]{
                     {"Á", "É", "Í", "Ó", "Ú"},
+                    {"Á", "É", "Í", "Ó", "Ú"},
+                    {"Á0", "É0", "Í0", "Ó0", "Ú0"},
+                    {"Á1", "É1", "Í1", "Ó1", "Ú1"},
+                    {"Á2", "É2", "Í2", "Ó2", "Ú2"},
+                    {"Á3", "É3", "Í3", "Ó3", "Ú3"},
             };
         }
 
@@ -520,35 +528,26 @@ public class MJG {
         public static String[][] getABC_LOW_NUM() {
             return new String[][]{
                     {"á", "é", "í", "ó", "ú"},
+                    {"á0", "é0", "í0", "ó0", "ú0"},
+                    {"á1", "é1", "í1", "ó1", "ú1"},
+                    {"á1", "é1", "í1", "ó1", "ú1"},
+                    {"á2", "é2", "í2", "ó2", "ú2"},
+                    {"á3", "é3", "í3", "ó3", "ú3"},
             };
         }
 
-
-        /**
-         *                                          z
-         *     /--------------/|                    |    / y
-         *    /|             / |                    |   /
-         *   / |            /  |                    |  /
-         *  /  |           /   |                    | /
-         * +--------------+ -- /    -x -------------|------------- x
-         * |   /          |   /                    /|
-         * |  /           |  /                    / |
-         * | /            | /                    /  |
-         * |______________|/                 -y /   |
-         *                                         -z
-         *
-         *
-         */
-
-        public static String[][][] getArea() {
-            return new String[][][]{
-                    getABC_UP(), // x>0
-                    getABC_UP_NUM(), // z>0
-                    getABC_LOW(), // x<0
-                    getABC_LOW_NUM(), // z<0
-                    getABC_NUM(), // y>0
-                    getABC_SPECIAL(), // y<0
-
+        public static String[][] getDuck() {
+            return new String[][]{
+                    {"A", "B", "C", "D", "E", "a", "k", "t","0", "🦆"},
+                    {"F", "G", "H", "I", "J", "b", "l", "u","1", "🎄"},
+                    {"K", "L", "M", "N", "Ñ", "c", "m", "v","2", "🐔"},
+                    {"O", "P", "Q", "R", "S", "d", "n", "w","3", "🐂"},
+                    {"T", "U", "V", "W", "X", "e", "ñ", "x","4", "🐓"},
+                    {"Y", "Z", " ", ".", ",", "f", "o", "y","5", "🐼"},
+                    {"á", "é", "í", "ó", "ú", "g", "p", "z","6", "🐢"},
+                    {"@", "#", "$", "%", "&", "h", "q", " ", "7", "🦊"},
+                    {"*", "(", ")", "-", "_", "i", "r", ".", "8", "🦒"},
+                    {"+", "=", "|", "\\", "/", "j", "s", ",", "9", "🐙"},
             };
         }
     }
